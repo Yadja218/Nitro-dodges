@@ -7,7 +7,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { GameState, Difficulty } from './types';
 import GameCanvas from './components/GameCanvas';
-import { Trophy, Play, RotateCcw, Crosshair, Terminal, Gauge, Activity, Cpu } from 'lucide-react';
+import { Trophy, Play, RotateCcw, Crosshair, Terminal, Gauge, Activity, Cpu, Pause } from 'lucide-react';
 
 export default function App() {
   const [gameState, setGameState] = useState<GameState>(GameState.START);
@@ -26,7 +26,7 @@ export default function App() {
   };
 
   const handleGameOver = (finalScore: number) => {
-    if (gameState !== GameState.PLAYING) return;
+    if (gameState !== GameState.PLAYING && gameState !== GameState.PAUSED) return;
     setGameState(GameState.GAMEOVER);
     const newHighScores = { ...highScore };
     if (finalScore > newHighScores[difficulty]) {
@@ -58,6 +58,14 @@ export default function App() {
               <div className="text-3xl font-black text-black leading-none tabular-nums">{score}</div>
             </div>
 
+            {/* PAUSE BUTTON */}
+            <button 
+              onClick={() => setGameState(GameState.PAUSED)}
+              className="md:hidden pointer-events-auto bg-[#facc15] p-2 border-b-4 border-[#ca8a04] hover:bg-yellow-400 active:scale-95 transition-all z-30"
+            >
+              <Pause className="text-black" size={24} />
+            </button>
+
             {/* PROGRESS BAR (Center) */}
             <div className="hidden md:flex flex-col items-center flex-1 max-w-md mt-2">
               <div className="text-[10px] font-black text-white uppercase mb-1 drop-shadow-md">
@@ -79,14 +87,22 @@ export default function App() {
             </div>
 
             {/* GEAR/KPH BOX */}
-            <div className="bg-[#facc15] px-6 py-2 border-b-4 border-[#ca8a04] flex gap-8">
-              <div className="text-right">
-                <div className="text-[10px] font-black text-black/60 uppercase tracking-tighter">GEAR</div>
-                <div className="text-3xl font-black text-black leading-none">{difficulty === 'HARD' ? '6' : difficulty === 'MEDIUM' ? '4' : '2'}/6</div>
-              </div>
-              <div className="text-right">
-                <div className="text-[10px] font-black text-black/60 uppercase tracking-tighter">KPH</div>
-                <div className="text-3xl font-black text-black leading-none tabular-nums">{Math.floor(score / 100 + 40)}</div>
+            <div className="flex gap-2 items-start">
+              <button 
+                onClick={() => setGameState(GameState.PAUSED)}
+                className="hidden md:flex pointer-events-auto bg-[#facc15] p-4 border-b-4 border-[#ca8a04] hover:bg-yellow-400 active:scale-95 transition-all z-30 mr-2"
+              >
+                <Pause className="text-black" size={24} />
+              </button>
+              <div className="bg-[#facc15] px-6 py-2 border-b-4 border-[#ca8a04] flex gap-8">
+                <div className="text-right">
+                  <div className="text-[10px] font-black text-black/60 uppercase tracking-tighter">GEAR</div>
+                  <div className="text-3xl font-black text-black leading-none">{difficulty === 'HARD' ? '6' : difficulty === 'MEDIUM' ? '4' : '2'}/6</div>
+                </div>
+                <div className="text-right">
+                  <div className="text-[10px] font-black text-black/60 uppercase tracking-tighter">KPH</div>
+                  <div className="text-3xl font-black text-black leading-none tabular-nums">{Math.floor(score / 100 + 40)}</div>
+                </div>
               </div>
             </div>
           </div>
@@ -239,46 +255,106 @@ export default function App() {
           </motion.div>
         )}
 
+        {gameState === GameState.PAUSED && (
+          <motion.div 
+            key="paused-screen"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/60 backdrop-blur-md p-6 text-center"
+          >
+             <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="bg-[#facc15] p-10 border-b-8 border-[#ca8a04] w-full max-w-md relative overflow-hidden"
+            >
+              <h2 className="text-6xl font-black text-black italic tracking-tighter mb-8 uppercase">
+                PAUSED
+              </h2>
+              
+              <div className="grid gap-4">
+                <button
+                  onClick={() => setGameState(GameState.PLAYING)}
+                  className="w-full bg-black text-[#facc15] py-5 font-black italic text-xl hover:scale-[1.02] active:scale-95 transition-all shadow-xl flex items-center justify-center gap-3"
+                >
+                  <Play size={24} fill="currentColor" />
+                  RESUME
+                </button>
+                <button
+                  onClick={() => setGameState(GameState.START)}
+                  className="w-full bg-black/10 text-black py-3 font-black text-[10px] uppercase tracking-widest hover:bg-black/20 transition-all"
+                >
+                  QUIT TO MENU
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+
         {gameState === GameState.GAMEOVER && (
           <motion.div 
             key="gameover-screen"
             initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
+            animate={{ 
+              opacity: 1,
+              x: [0, -15, 15, -10, 10, 0],
+              transition: { duration: 0.5 }
+            }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm p-6 text-center"
+            className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/40 backdrop-blur-sm p-6 text-center"
           >
+            {/* Crash Flash Overlay */}
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: [0, 0.7, 0], transition: { duration: 0.3 } }}
+              className="absolute inset-0 bg-red-600/20 pointer-events-none"
+            />
+
             <motion.div
-              initial={{ scale: 1.1, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              className="bg-[#facc15] p-10 border-b-8 border-[#ca8a04] w-full max-w-md"
+              initial={{ scale: 0.8, opacity: 0, rotate: 2 }}
+              animate={{ scale: 1, opacity: 1, rotate: 0 }}
+              className="bg-[#facc15] p-10 border-b-8 border-[#ca8a04] w-full max-w-md relative overflow-hidden"
             >
-              <h2 className="text-6xl font-black text-black italic tracking-tighter mb-4 uppercase text-center">
+              <div className="absolute inset-0 pointer-events-none opacity-10 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] z-10 bg-[length:100%_2px,3px_100%]" />
+              
+              <h2 className="text-6xl font-black text-black italic tracking-tighter mb-1 uppercase text-center drop-shadow-md">
                 CRASHED!
               </h2>
-              <div className="bg-black text-[#facc15] p-8 mb-8 flex flex-col items-center">
-                  <div className="text-[10px] uppercase tracking-widest font-black opacity-60 mb-2">Final Distance</div>
-                  <div className="text-6xl font-black italic">{(score/1000).toFixed(1)} <span className="text-sm">KM</span></div>
+              <div className="text-black font-mono text-[9px] uppercase tracking-widest mb-6 opacity-40">System Overload // Engine Failed</div>
+
+              <div className="bg-black text-[#facc15] p-8 mb-8 flex flex-col items-center shadow-inner relative">
+                  <div className="absolute top-2 right-2 flex gap-1">
+                    <div className="w-1 h-1 bg-[#facc15] rounded-full animate-ping" />
+                    <div className="w-1 h-1 bg-[#facc15] rounded-full opacity-30" />
+                  </div>
+                  <div className="text-[10px] uppercase tracking-[0.2em] font-black opacity-60 mb-2">TELEMETRY DATA</div>
+                  <div className="text-6xl font-black italic tabular-nums leading-none">{(score/1000).toFixed(1)} <span className="text-sm">KM</span></div>
               </div>
 
               <div className="space-y-2 text-left mb-8">
-                <div className="flex justify-between border-b border-black/10 pb-1">
-                  <span className="text-[10px] font-black uppercase text-black/60">BEST ({difficulty})</span>
-                  <span className="text-sm font-black text-black">{(highScore[difficulty]/1000).toFixed(1)} KM</span>
+                <div className="flex justify-between border-b border-black/20 pb-1">
+                  <span className="text-[10px] font-black uppercase text-black/60 tracking-tight">MISSION STATUS</span>
+                  <span className="text-[10px] font-black text-rose-600 uppercase">TERMINATED</span>
+                </div>
+                <div className="flex justify-between border-b border-black/20 pb-1">
+                  <span className="text-[10px] font-black uppercase text-black/60 tracking-tight">BEST SCORE ({difficulty})</span>
+                  <span className="text-[10px] font-black text-black">{(highScore[difficulty]/1000).toFixed(1)} KM</span>
                 </div>
               </div>
 
               <div className="grid gap-3">
                 <button
                   onClick={() => startGame(difficulty)}
-                  className="w-full bg-black text-[#facc15] py-4 font-black italic text-lg hover:bg-black/90 transition-all shadow-lg"
+                  className="w-full bg-black text-[#facc15] py-4 font-black italic text-lg hover:scale-[1.02] active:scale-95 transition-all shadow-xl flex items-center justify-center gap-3 group"
                 >
-                  RETRY
+                  <RotateCcw size={20} className="group-hover:rotate-180 transition-transform duration-500" />
+                  REBOOT & RETRY
                 </button>
                 <button
                   onClick={() => setGameState(GameState.START)}
                   className="w-full bg-black/10 text-black py-3 font-black text-[10px] uppercase tracking-widest hover:bg-black/20 transition-all"
                 >
-                  RETURN TO MENU
+                  ABANDON MISSION
                 </button>
               </div>
             </motion.div>

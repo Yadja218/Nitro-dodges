@@ -19,6 +19,7 @@ export interface PlayerCar extends Entity {
   lane: number;
   targetX: number;
   rotation: number;
+  pitch: number;
   turbo: number; // 0 to 1
   isTurboActive: boolean;
   acceleration: number;
@@ -37,11 +38,25 @@ export interface Particle {
   color: string;
   life: number;
   decay: number;
+  type?: 'dust' | 'explosion';
 }
 
 export enum GameState {
   START,
   DIFFICULTY_SELECT,
   PLAYING,
+  PAUSED,
   GAMEOVER
+}
+
+export interface GhostSnapshot {
+  x: number;
+  z: number;
+  speed: number;
+}
+
+export interface GhostData {
+  difficulty: Difficulty;
+  score: number;
+  snapshots: GhostSnapshot[];
 }
